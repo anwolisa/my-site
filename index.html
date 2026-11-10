@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Levels — NQ · ES · GC</title>
+<style>
+  :root {
+    --bg: #0b0e13; --panel: #131820; --line: #232b36; --text: #e6e9ee; --muted: #8a94a3;
+    --up: #2fbf71; --up-soft: rgba(47,191,113,.14); --down: #e5534b; --down-soft: rgba(229,83,75,.14);
+    --mid: #c9a227;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+    padding: 20px 20px 8px; max-width: 1100px; margin: 0 auto; flex-wrap: wrap; }
+  h1 { font-size: 20px; margin: 0; letter-spacing: .02em; }
+  h1 span { color: var(--muted); font-weight: 400; }
+  #status { color: var(--muted); font-size: 13px; font-family: var(--mono); }
+  main { max-width: 1100px; margin: 0 auto; padding: 8px 20px 40px; }
+
+  /* Summary matrix */
+  .matrix { width: 100%; border-collapse: collapse; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin-bottom: 20px; }
+  .matrix th, .matrix td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--line); }
+  .matrix tr:last-child td { border-bottom: 0; }
+  .matrix th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+  .matrix td.sym { font-weight: 600; }
+  .matrix td.px { font-family: var(--mono); }
+  .chip { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .z-above-high { background: var(--up); color: #04170c; }
+  .z-upper-half { background: var(--up-soft); color: var(--up); }
+  .z-lower-half { background: var(--down-soft); color: var(--down); }
+  .z-below-low  { background: var(--down); color: #1c0504; }
+
+  /* Detail cards */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+  .card-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 14px; }
+  .card-head .sym { font-size: 18px; font-weight: 700; }
+  .card-head .name { color: var(--muted); font-size: 13px; margin-left: 6px; }
+  .card-head .price { font-family: var(--mono); font-size: 20px; font-weight: 600; }
+  .row { padding: 12px 0; border-top: 1px solid var(--line); }
+  .row-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .row-label { font-weight: 600; }
+  .row-label small { color: var(--muted); font-weight: 400; margin-left: 6px; font-family: var(--mono); font-size: 11px; }
+
+  .track { position: relative; height: 8px; border-radius: 4px; margin: 18px 10px 26px;
+    background: linear-gradient(90deg, var(--down-soft), var(--down-soft) 50%, var(--up-soft) 50%, var(--up-soft)); }
+  .tick { position: absolute; top: -4px; width: 2px; height: 16px; background: var(--muted); transform: translateX(-1px); }
+  .tick.mid { background: var(--mid); }
+  .tick-label { position: absolute; top: 18px; transform: translateX(-50%); font-family: var(--mono); font-size: 11px; color: var(--muted); white-space: nowrap; }
+  .tick-label.mid { color: var(--mid); }
+  .marker { position: absolute; top: -18px; transform: translateX(-50%); font-size: 12px; font-weight: 700; font-family: var(--mono); white-space: nowrap; }
+  .marker::after { content: ""; display: block; width: 0; height: 0; margin: 1px auto 0;
+    border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid currentColor; }
+  .dists { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .pos { color: var(--up); } .neg { color: var(--down); }
+  .err { color: var(--down); font-size: 13px; }
+  .matrix-wrap { overflow-x: auto; margin-bottom: 20px; }
+  .matrix-wrap .matrix { margin-bottom: 0; }
+  @media (max-width: 520px) {
+    header, main, footer { padding-left: 12px; padding-right: 12px; }
+    .matrix th, .matrix td { padding: 8px 5px; }
+    .matrix th { font-size: 10px; letter-spacing: .03em; }
+    .matrix td.px { font-size: 13px; }
+    .chip { font-size: 11px; padding: 2px 6px; }
+    .cards { grid-template-columns: 1fr; }
+  }
+  footer { color: var(--muted); font-size: 12px; max-width: 1100px; margin: 0 auto; padding: 0 20px 30px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Levels <span>NQ · ES · GC vs prior day, week, month</span></h1>
+  <div id="status">Loading…</div>
+</header>
+<main>
+  <div class="matrix-wrap"><table class="matrix" id="matrix"></table></div>
+  <div class="cards" id="cards"></div>
+</main>
+<footer>
+  Prices from Yahoo Finance continuous front-month futures; may be delayed and are not for order entry.
+  Prior periods use completed daily sessions. Refreshes every 60 seconds.
+</footer>
+
+<script>
+const PERIODS = [["day", "Prev Day"], ["week", "Prev Week"], ["month", "Prev Month"]];
+const ZONE_LABEL = {
+  "above-high": "Above high", "upper-half": "Above mid",
+  "lower-half": "Below mid", "below-low": "Below low",
+};
+
+// NQ/ES tick 0.25 → 2 decimals; GC tick 0.10 → 1 decimal
+const fmt = (n, sym) => { if (n == null) return "—"; const d = sym === "GC" ? 1 : 2;
+  return n.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d }); };
+const short = (d) => d.slice(5).replace("-", "/");
+const signed = (n, sym) => `<span class="${n >= 0 ? "pos" : "neg"}">${n >= 0 ? "+" : ""}${fmt(n, sym)}</span>`;
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function track(p, sym) {
+  // Show range from low to high in the middle 80%, leaving room for price outside it.
+  const scale = (v) => 10 + ((v - p.low) / (p.high - p.low || 1)) * 80;
+  const pricePos = Math.max(0, Math.min(100, scale(p.low + (p.pct / 100) * (p.high - p.low))));
+  const color = p.distMid >= 0 ? "var(--up)" : "var(--down)";
+  return `
+    <div class="track">
+      <div class="tick" style="left:10%"></div><div class="tick-label" style="left:10%">L ${fmt(p.low, sym)}</div>
+      <div class="tick mid" style="left:50%"></div><div class="tick-label mid" style="left:50%">M ${fmt(p.mid, sym)}</div>
+      <div class="tick" style="left:90%"></div><div class="tick-label" style="left:90%">H ${fmt(p.high, sym)}</div>
+      <div class="marker" style="left:${pricePos}%;color:${color}">${p.pct.toFixed(0)}%</div>
+    </div>`;
+}
+
+function render(data) {
+  const ok = data.instruments;
+  document.getElementById("matrix").innerHTML = `
+    <tr><th></th><th>Price</th>${PERIODS.map(([, l]) => `<th>${l.replace("Prev ", "")}</th>`).join("")}</tr>
+    ${ok.map((i) => `<tr>
+      <td class="sym">${esc(i.id)}</td>
+      <td class="px">${i.error ? "—" : fmt(i.price, i.id)}</td>
+      ${PERIODS.map(([k]) => {
+        const p = i[k];
+        return `<td>${p ? `<span class="chip z-${p.zone}">${ZONE_LABEL[p.zone]}</span>` : "—"}</td>`;
+      }).join("")}
+    </tr>`).join("")}`;
+
+  document.getElementById("cards").innerHTML = ok.map((i) => {
+    if (i.error) return `<div class="card"><div class="card-head"><div><span class="sym">${esc(i.id)}</span><span class="name">${esc(i.name)}</span></div></div><div class="err">Couldn't load: ${esc(i.error)}</div></div>`;
+    return `<div class="card">
+      <div class="card-head">
+        <div><span class="sym">${esc(i.id)}</span><span class="name">${esc(i.name)}</span></div>
+        <div class="price">${fmt(i.price, i.id)}</div>
+      </div>
+      ${PERIODS.map(([k, label]) => {
+        const p = i[k];
+        if (!p) return `<div class="row"><div class="row-label">${label}</div><div class="err">Not enough history</div></div>`;
+        const range = p.from === p.to ? short(p.from) : `${short(p.from)} – ${short(p.to)}`;
+        return `<div class="row">
+          <div class="row-top">
+            <div class="row-label">${label}<small>${range}</small></div>
+            <span class="chip z-${p.zone}">${ZONE_LABEL[p.zone]}</span>
+          </div>
+          ${track(p, i.id)}
+          <div class="dists"><span>vs L ${signed(p.distLow, i.id)}</span><span>vs M ${signed(p.distMid, i.id)}</span><span>vs H ${signed(p.distHigh, i.id)}</span></div>
+        </div>`;
+      }).join("")}
+    </div>`;
+  }).join("");
+
+  const t = new Date(data.generatedAt);
+  document.getElementById("status").textContent = `Updated ${t.toLocaleTimeString()}`;
+}
+
+async function load() {
+  try {
+    const demo = new URLSearchParams(location.search).has("demo");
+    const res = await fetch(demo ? "demo.json" : "/api/levels", { cache: "no-store" });
+    if (!res.ok) throw new Error(res.status);
+    render(await res.json());
+  } catch (e) {
+    document.getElementById("status").textContent = "Couldn't refresh — retrying in 60s";
+  }
+}
+load();
+setInterval(load, 60000);
+</script>
+</body>
+</html>
