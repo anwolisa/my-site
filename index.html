@@ -80,6 +80,7 @@
   .lv-legend i.dot { height: 0; border-top: 3px dotted; border-radius: 0; background: none; }
   .lv-legend i.dash { height: 0; border-top: 2px dashed #e6e9ee; border-radius: 0; }
   .lv-legend .sep { width: 1px; height: 12px; background: #232b36; }
+  .chart-wrap { border-top: 1px solid var(--line); padding-top: 14px; }
   footer { color: var(--muted); font-size: 12px; max-width: 1100px; margin: 0 auto; padding: 0 20px 30px; }
 </style>
 </head>
@@ -199,7 +200,6 @@ function render(data) {
         <div><span class="sym">${esc(i.id)}</span><span class="name">${esc(i.name)}</span></div>
         <div class="price">${fmt(i.price, i.id)}</div>
       </div>
-      ${LV_LEGEND}${levelChart(i, (n) => fmt(n, i.id))}
       ${PERIODS.map(([k, label]) => {
         const p = i[k];
         if (!p) return `<div class="row"><div class="row-label">${label}</div><div class="err">Not enough history</div></div>`;
@@ -213,6 +213,7 @@ function render(data) {
           <div class="dists"><span>vs L ${signed(p.distLow, i.id)}</span><span>vs M ${signed(p.distMid, i.id)}</span><span>vs H ${signed(p.distHigh, i.id)}</span></div>
         </div>`;
       }).join("")}
+      <div class="chart-wrap">${LV_LEGEND}${levelChart(i, (n) => fmt(n, i.id))}</div>
     </div>`;
   }).join("");
 
