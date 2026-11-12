@@ -8,7 +8,7 @@
   :root {
     --bg: #0b0e13; --panel: #131820; --line: #232b36; --text: #e6e9ee; --muted: #8a94a3;
     --up: #2fbf71; --up-soft: rgba(47,191,113,.14); --down: #e5534b; --down-soft: rgba(229,83,75,.14);
-    --mid: #c9a227;
+    --mid: #4f93f0;
     --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   }
   * { box-sizing: border-box; }
@@ -69,6 +69,17 @@
     .chip { font-size: 11px; padding: 2px 6px; }
     .cards { grid-template-columns: 1fr; }
   }
+  .lv-chart { width: 100%; height: auto; display: block; margin: 4px 0 10px; }
+  .lv-text { font: 11px var(--mono); fill: #8a94a3; }
+  .lv-num { fill: #c5ccd6; }
+  .lv-price { font: 700 11.5px var(--mono); fill: #e6e9ee; }
+  .lv-legend { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 12px; color: #8a94a3; margin-bottom: 14px; align-items: center; }
+  .lv-legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .lv-legend i { display: inline-block; width: 16px; height: 3px; border-radius: 2px; }
+  .lv-legend i.th { background: #8a94a3; }
+  .lv-legend i.dot { height: 0; border-top: 3px dotted; border-radius: 0; background: none; }
+  .lv-legend i.dash { height: 0; border-top: 2px dashed #e6e9ee; border-radius: 0; }
+  .lv-legend .sep { width: 1px; height: 12px; background: #232b36; }
   footer { color: var(--muted); font-size: 12px; max-width: 1100px; margin: 0 auto; padding: 0 20px 30px; }
 </style>
 </head>
@@ -99,6 +110,60 @@ const fmt = (n, sym) => { if (n == null) return "—"; const d = sym === "GC" ? 
 const short = (d) => d.slice(5).replace("-", "/");
 const signed = (n, sym) => `<span class="${n >= 0 ? "pos" : "neg"}">${n >= 0 ? "+" : ""}${fmt(n, sym)}</span>`;
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+// Level chart: horizontal lines at prior day/week/month high, mid, low + current price.
+const LV_COLOR = { high: "#22a05a", mid: "#4f93f0", low: "#e0564e" };
+const LV_PERIOD = { month: { w: 4.5, tag: "Mo" }, week: { w: 2.5, tag: "Wk" }, day: { w: 1.5, tag: "Day" } };
+const LV_NAME = { high: "High", mid: "Mid", low: "Low" };
+
+function levelChart(inst, fmt) {
+  const W = 360, H = 330, top = 14, bottom = 14, plotR = 196, labelX = 222;
+  const items = [];
+  for (const p of ["month", "week", "day"]) {
+    if (!inst[p]) continue;
+    for (const l of ["high", "mid", "low"]) items.push({ p, l, v: inst[p][l] });
+  }
+  items.push({ price: true, v: inst.price });
+  const vals = items.map((i) => i.v);
+  const lo = Math.min(...vals), hi = Math.max(...vals), span = hi - lo || 1;
+  const y = (v) => top + (1 - (v - lo) / span) * (H - top - bottom);
+  items.forEach((i) => (i.y = y(i.v)));
+
+  // Spread labels so they never overlap (min 15px apart), keeping order.
+  const lab = [...items].sort((a, b) => a.y - b.y);
+  const gap = 15;
+  lab.forEach((i, k) => (i.ly = k ? Math.max(i.y, lab[k - 1].ly + gap) : Math.max(i.y, top)));
+  const over = lab[lab.length - 1].ly - (H - 6);
+  if (over > 0) {
+    lab[lab.length - 1].ly -= over;
+    for (let k = lab.length - 2; k >= 0; k--) lab[k].ly = Math.min(lab[k].ly, lab[k + 1].ly - gap);
+  }
+
+  const lines = items.filter((i) => !i.price).map((i) => `
+    <line x1="8" x2="${plotR}" y1="${i.y}" y2="${i.y}" stroke="${LV_COLOR[i.l]}" stroke-width="${LV_PERIOD[i.p].w}" stroke-linecap="round"${i.l === "mid" ? ` stroke-dasharray="0.01 ${Math.max(4, LV_PERIOD[i.p].w * 2.2)}"` : ""}/>`).join("");
+  const pr = items.find((i) => i.price);
+  const priceLine = `<line x1="8" x2="${plotR}" y1="${pr.y}" y2="${pr.y}" stroke="#e6e9ee" stroke-width="1.5" stroke-dasharray="5 4"/>
+    <circle cx="${plotR}" cy="${pr.y}" r="4" fill="#e6e9ee" stroke="#131820" stroke-width="2"/>`;
+  const labels = lab.map((i) => {
+    const leader = `<path d="M${plotR + 6} ${i.y} L${labelX - 6} ${i.ly}" stroke="#3a4554" stroke-width="1" fill="none"/>`;
+    if (i.price) return `${leader}<text x="${labelX}" y="${i.ly + 4}" class="lv-price">Price <tspan x="${W - 2}" text-anchor="end">${fmt(i.v)}</tspan></text>`;
+    return `${leader}<text x="${labelX}" y="${i.ly + 4}" class="lv-text">${LV_PERIOD[i.p].tag} ${LV_NAME[i.l]}<tspan x="${W - 2}" text-anchor="end" class="lv-num">${fmt(i.v)}</tspan></text>`;
+  }).join("");
+
+  return `<svg class="lv-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${inst.id} price against prior day, week and month high, mid and low">
+    ${lines}${priceLine}${labels}</svg>`;
+}
+
+const LV_LEGEND = `<div class="lv-legend">
+  <span><i style="background:${LV_COLOR.high}"></i>High</span>
+  <span><i class="dot" style="border-color:${LV_COLOR.mid}"></i>Mid</span>
+  <span><i style="background:${LV_COLOR.low}"></i>Low</span>
+  <span class="sep"></span>
+  <span><i class="th" style="height:5px"></i>Month</span>
+  <span><i class="th" style="height:3px"></i>Week</span>
+  <span><i class="th" style="height:1px"></i>Day</span>
+  <span><i class="dash"></i>Price</span>
+</div>`;
 
 function track(p, sym) {
   // Show range from low to high in the middle 80%, leaving room for price outside it.
@@ -134,6 +199,7 @@ function render(data) {
         <div><span class="sym">${esc(i.id)}</span><span class="name">${esc(i.name)}</span></div>
         <div class="price">${fmt(i.price, i.id)}</div>
       </div>
+      ${LV_LEGEND}${levelChart(i, (n) => fmt(n, i.id))}
       ${PERIODS.map(([k, label]) => {
         const p = i[k];
         if (!p) return `<div class="row"><div class="row-label">${label}</div><div class="err">Not enough history</div></div>`;
