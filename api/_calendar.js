@@ -20,7 +20,7 @@ const SPECS = [
   { key: "spending", match: /^personal spending m\/m/i, label: "Personal Spending (MoM)", series: "PCE", calc: "pct_mom", dir: -1, weight: 1, group: "Consumer" },
   { key: "real_pce", match: /^real personal (consumption|spending)/i, label: "Real Personal Consumption (MoM)", series: "PCEC96", calc: "pct_mom", dir: -1, weight: 0.5, group: "Consumer", extraOf: "core_pce_mom" },
   { key: "gdp", match: /^(advance|prelim|final) gdp q\/q/i, label: "GDP (QoQ, annualized)", series: "A191RL1Q225SBEA", calc: "direct", dir: -1, weight: 1, group: "Growth" },
-  { key: "gdp_price", match: /^(advance|prelim|final) gdp price index q\/q/i, label: "GDP Price Index (QoQ)", series: "A191RI1Q225SBEA", calc: "direct", dir: -1, weight: 1, group: "Inflation" },
+  { key: "gdp_price", match: /^(advance|prelim|final) gdp price index q\/q/i, label: "GDP Price Index (QoQ)", series: "GDPCTPI", calc: "pct_qoq_ann", dir: -1, weight: 1, group: "Inflation" },
   { key: "gdp_core_pce", match: /^(advance|prelim|final) core pce prices? q\/q/i, label: "Core PCE Prices (QoQ, from GDP)", series: "DPCCRV1Q225SBEA", calc: "direct", dir: -1, weight: 1, group: "Inflation", extraOf: "gdp" },
   { key: "durables", match: /^durable goods orders m\/m/i, label: "Durable Goods Orders (MoM)", series: "DGORDER", calc: "pct_mom", dir: -1, weight: 0.5, group: "Growth" },
   { key: "core_durables", match: /^core durable goods orders m\/m/i, label: "Durable Goods ex Transportation (MoM)", series: "ADXTNO", calc: "pct_mom", dir: -1, weight: 0.5, group: "Growth" },
@@ -50,6 +50,7 @@ function actualFromObs(spec, obs) {
   if (v[0] == null) return null;
   switch (spec.calc) {
     case "pct_mom": return v[1] ? (v[0] / v[1] - 1) * 100 : null;
+    case "pct_qoq_ann": return v[1] ? ((v[0] / v[1]) ** 4 - 1) * 100 : null;
     case "pct_yoy": return v[12] ? (v[0] / v[12] - 1) * 100 : null;
     case "direct": return v[0];
     case "level": return v[0] * (spec.scale ?? 1);
