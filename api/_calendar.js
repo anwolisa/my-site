@@ -68,20 +68,14 @@ function parseFredTime(s) {
 
 // Merge FF events with spec rows (including extras not in FF) for US releases.
 function buildRows(ffEvents) {
-  const us = ffEvents.filter((e) => e.country === "USD" && e.impact !== "Holiday" && !/speaks|bulletin|beige|auction/i.test(e.title));
+  // Only high-impact (red) US releases: the ones that move NQ on the day.
+  const us = ffEvents.filter((e) => e.country === "USD" && e.impact === "High");
   const rows = [];
   const seen = new Set();
   for (const e of us) {
     const spec = SPECS.find((s) => s.match.test(e.title));
     if (spec) seen.add(spec.key);
     rows.push({ title: spec ? spec.label : e.title, ffTitle: e.title, date: e.date, impact: e.impact, forecast: e.forecast || "", previous: e.previous || "", spec });
-  }
-  for (const spec of SPECS) {
-    if (!spec.extraOf || seen.has(spec.key)) continue;
-    const anchor = rows.find((r) => r.spec && r.spec.key === spec.extraOf);
-    if (!anchor) continue;
-    rows.push({ title: spec.label, ffTitle: null, date: anchor.date, impact: "Extra", forecast: "", previous: "", spec });
-    seen.add(spec.key);
   }
   rows.sort((a, b) => Date.parse(a.date) - Date.parse(b.date) || (a.impact === "Extra") - (b.impact === "Extra"));
   return rows;
