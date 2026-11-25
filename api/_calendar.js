@@ -66,6 +66,48 @@ function parseFredTime(s) {
   return isNaN(t) ? null : t;
 }
 
+
+// Short plain-English description for each release (matched on the feed's title).
+const DESCRIPTIONS = [
+  [/core pce price index/i, "Monthly change in prices people pay, excluding food and energy. The Fed's preferred inflation gauge."],
+  [/pce price index/i, "Monthly change in prices people pay, including food and energy."],
+  [/core cpi/i, "Change in consumer prices excluding food and energy. The most-watched monthly inflation number."],
+  [/\bcpi\b/i, "Change in the prices of a basket of consumer goods and services."],
+  [/core ppi/i, "Change in prices businesses receive, excluding food and energy. An early sign of consumer inflation."],
+  [/\bppi\b/i, "Change in prices businesses receive for their goods and services."],
+  [/gdp price index/i, "Inflation across the whole economy, from the GDP report."],
+  [/gdp/i, "How fast the US economy grew last quarter, annualized and after inflation."],
+  [/non-?farm (employment|payrolls)/i, "Number of jobs added last month, outside farming. The biggest monthly jobs number."],
+  [/unemployment rate/i, "Share of people looking for work who can't find a job."],
+  [/average hourly earnings/i, "Change in average pay per hour. Fast wage growth can feed inflation."],
+  [/unemployment claims|jobless claims/i, "New unemployment filings last week. A quick read on layoffs."],
+  [/adp/i, "Private payroll firm ADP's estimate of jobs added."],
+  [/jolts|job openings/i, "Number of open jobs. Shows how much demand there is for workers."],
+  [/federal funds rate|fomc statement/i, "The Fed's interest-rate decision and its statement on the economy."],
+  [/fomc press conference/i, "The Fed chair explains the rate decision and answers questions."],
+  [/fomc meeting minutes/i, "Detailed notes from the last Fed meeting, showing how officials are leaning."],
+  [/(fed )?chair .* speaks|powell speaks/i, "Speech by the Fed chair. Hints about future rates can move markets."],
+  [/core retail sales/i, "Change in store and online sales, excluding cars."],
+  [/retail sales/i, "Change in total store and online sales. Shows how much consumers are spending."],
+  [/ism manufacturing pmi/i, "Survey of factory managers. Above 50 means manufacturing is growing."],
+  [/ism services pmi/i, "Survey of service-company managers. Above 50 means services are growing."],
+  [/flash .*pmi/i, "Early survey of purchasing managers. Above 50 means activity is growing."],
+  [/prelim uom inflation expectations|inflation expectations/i, "What consumers expect inflation to be over the next year."],
+  [/uom consumer sentiment|consumer sentiment/i, "Survey of how confident consumers feel about the economy."],
+  [/consumer confidence/i, "Survey of how confident consumers feel about the economy and jobs."],
+  [/personal spending/i, "Monthly change in how much consumers spent."],
+  [/personal income/i, "Monthly change in how much people earned."],
+  [/core durable goods/i, "Orders for long-lasting goods, excluding volatile transport orders."],
+  [/durable goods/i, "Orders for long-lasting goods such as machines and planes."],
+  [/new home sales/i, "Number of newly built homes sold, at an annual pace."],
+  [/existing home sales/i, "Number of previously owned homes sold, at an annual pace."],
+  [/crude oil inventories/i, "Weekly change in US crude oil stockpiles."],
+];
+function describe(title) {
+  const hit = DESCRIPTIONS.find(([re]) => re.test(title));
+  return hit ? hit[1] : "";
+}
+
 // Merge FF events with spec rows (including extras not in FF) for US releases.
 function buildRows(ffEvents) {
   // Only high-impact (red) US releases: the ones that move NQ on the day.
@@ -75,7 +117,7 @@ function buildRows(ffEvents) {
   for (const e of us) {
     const spec = SPECS.find((s) => s.match.test(e.title));
     if (spec) seen.add(spec.key);
-    rows.push({ title: spec ? spec.label : e.title, ffTitle: e.title, date: e.date, impact: e.impact, forecast: e.forecast || "", previous: e.previous || "", spec });
+    rows.push({ title: spec ? spec.label : e.title, ffTitle: e.title, desc: describe(e.title), date: e.date, impact: e.impact, forecast: e.forecast || "", previous: e.previous || "", spec });
   }
   rows.sort((a, b) => Date.parse(a.date) - Date.parse(b.date) || (a.impact === "Extra") - (b.impact === "Extra"));
   return rows;
@@ -156,4 +198,4 @@ function buildCalls(rows, levels, now) {
   };
 }
 
-module.exports = { SPECS, FF_URL, FRED, parseNum, actualFromObs, parseFredTime, buildRows, finishRow, buildCalls, etDay };
+module.exports = { describe, SPECS, FF_URL, FRED, parseNum, actualFromObs, parseFredTime, buildRows, finishRow, buildCalls, etDay };

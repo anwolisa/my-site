@@ -35,7 +35,8 @@
   .note { color: #d9b44a; font-size: 13px; margin-top: 12px; }
 
   .tbl-wrap { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
-  table { width: 100%; border-collapse: collapse; min-width: 640px; }
+  table { width: 100%; border-collapse: collapse; min-width: 860px; }
+  td.desc { white-space: normal; color: var(--muted); font-size: 13px; min-width: 260px; max-width: 420px; }
   th, td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
   th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
   td.n { font-family: var(--mono); text-align: right; } th.n { text-align: right; }
@@ -112,10 +113,10 @@ function render(d) {
   document.getElementById("calls").innerHTML = ["day", "week", "month"].map((k) => callCard(d.calls[k])).join("");
   document.getElementById("notes").textContent = (d.notes || []).join(" ");
   const today = etDay(Date.now());
-  let lastDay = "", html = `<tr><th>Time (ET)</th><th>Release</th><th class="n">Forecast</th><th class="n">Previous</th><th class="n">Actual</th><th>NQ effect</th></tr>`;
+  let lastDay = "", html = `<tr><th>Time (ET)</th><th>Release</th><th>Description</th><th class="n">Forecast</th><th class="n">Previous</th><th class="n">Actual</th><th>NQ effect</th></tr>`;
   for (const e of d.events) {
     const day = etDay(e.date);
-    if (day !== lastDay) { html += `<tr class="day ${day === today ? "today" : ""}"><td colspan="6">${dayLabel(e.date)}${day === today ? " · today" : ""}</td></tr>`; lastDay = day; }
+    if (day !== lastDay) { html += `<tr class="day ${day === today ? "today" : ""}"><td colspan="7">${dayLabel(e.date)}${day === today ? " · today" : ""}</td></tr>`; lastDay = day; }
     let eff = `<span class="eff flat">—</span>`;
     if (e.actual && e.surprise === "inline") eff = `<span class="eff flat">In line</span>`;
     else if (e.effect > 0) eff = `<span class="eff pos">▲ ${signedPts(e.effect)}</span>`;
@@ -123,6 +124,7 @@ function render(d) {
     const dim = !e.scored && !e.forecast ? "dim" : "";
     html += `<tr class="${dim}"><td>${e.impact === "Extra" ? "" : timeLabel(e.date)}</td>
       <td><span class="imp ${e.impact}"></span>${esc(e.title)}</td>
+      <td class="desc">${esc(e.desc) || "—"}</td>
       <td class="n">${esc(e.forecast) || "—"}</td><td class="n">${esc(e.previous) || "—"}</td>
       <td class="n"><b>${esc(e.actual) || "—"}</b></td><td>${eff}</td></tr>`;
   }
