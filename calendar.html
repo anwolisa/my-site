@@ -44,7 +44,7 @@
   tr.today.day td { color: var(--text); }
   tr.dim td { color: #5d6774; }
   .imp { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 8px; }
-  .imp.High { background: var(--down); } .imp.Medium { background: #d9b44a; } .imp.Low, .imp.Extra { background: #3a4554; }
+  .imp.High { background: var(--down); } .imp.Medium { background: #f08a24; } .imp.Low, .imp.Extra { background: #3a4554; }
   .eff { display: inline-block; min-width: 54px; text-align: center; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; }
   .eff.pos { background: var(--up-soft); } .eff.neg { background: var(--down-soft); } .eff.flat { color: var(--muted); }
   .rules { color: var(--muted); font-size: 13px; line-height: 1.6; }
@@ -68,7 +68,7 @@
   <div class="calls" id="calls"></div>
   <div class="note" id="notes"></div>
 
-  <h2>This week's high-impact US releases</h2>
+  <h2>This week's high- and medium-impact US releases</h2>
   <div class="tbl-wrap"><table id="tbl"></table></div>
 
   <h2>How the call is made</h2>
@@ -77,7 +77,7 @@
       The day call uses the prior day, the week call the prior week, the month call the prior month.</p>
     <p><b>Data surprises.</b> Each release that beats or misses its forecast adds points to the day and week calls. While the Fed is fighting inflation,
       strong numbers point to higher rates, which hurt tech. So hotter inflation, stronger growth, spending and housing count as <span class="neg">bearish</span>,
-      and higher jobless claims count as <span class="pos">bullish</span>. Only high-impact (red) releases are shown and scored.
+      and higher jobless claims count as <span class="pos">bullish</span>. Only high-impact (red) and medium-impact (orange) releases are shown and scored.
       Weights: core PCE MoM 3, headline PCE MoM 2, core PCE YoY 2, spending 1, GDP 1, GDP price index 1, everything else 0.5. Releases matching their forecast score 0.</p>
     <p><b>The call.</b> A total of +1 or more is bullish, −1 or less is bearish, anything in between is neutral (no clear edge).</p>
   </div>

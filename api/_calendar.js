@@ -110,8 +110,8 @@ function describe(title) {
 
 // Merge FF events with spec rows (including extras not in FF) for US releases.
 function buildRows(ffEvents) {
-  // Only high-impact (red) US releases: the ones that move NQ on the day.
-  const us = ffEvents.filter((e) => e.country === "USD" && e.impact === "High");
+  // High-impact (red) and medium-impact (orange) US releases.
+  const us = ffEvents.filter((e) => e.country === "USD" && (e.impact === "High" || e.impact === "Medium"));
   const rows = [];
   const seen = new Set();
   for (const e of us) {
