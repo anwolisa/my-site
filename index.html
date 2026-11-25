@@ -81,15 +81,30 @@
   .lv-legend i.dash { height: 0; border-top: 2px dashed #e6e9ee; border-radius: 0; }
   .lv-legend .sep { width: 1px; height: 12px; background: #232b36; }
   .chart-wrap { border-top: 1px solid var(--line); padding-top: 14px; }
+  .topnav { display: flex; gap: 18px; max-width: 1100px; margin: 0 auto; padding: 16px 20px 0; font-size: 14px; }
+  .topnav a { color: var(--muted); text-decoration: none; } .topnav a.on { color: var(--text); font-weight: 600; }
+  .today-call { display: flex; align-items: center; gap: 16px; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 12px; padding: 14px 18px; margin-bottom: 20px; color: var(--text); text-decoration: none; }
+  .today-call:empty { display: none; }
+  .today-call.bullish { border-color: rgba(47,191,113,.5); } .today-call.bearish { border-color: rgba(229,83,75,.5); }
+  .today-call .arrow { width: 96px; height: 96px; flex: none; }
+  .today-call .k { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+  .today-call .w { font-size: 24px; font-weight: 800; }
+  .today-call.bullish .w { color: var(--up); } .today-call.bearish .w { color: var(--down); } .today-call.neutral .w { color: var(--muted); }
+  .today-call .s { color: var(--muted); font-size: 13px; }
+  .today-call .go { margin-left: auto; color: var(--muted); font-size: 13px; white-space: nowrap; }
+  @media (max-width: 520px) { .topnav { padding-left: 12px; padding-right: 12px; } .today-call .go { display: none; } }
   footer { color: var(--muted); font-size: 12px; max-width: 1100px; margin: 0 auto; padding: 0 20px 30px; }
 </style>
 </head>
 <body>
+<nav class="topnav"><a class="on" href="/">Levels</a><a href="/calendar.html">Calendar &amp; bias</a></nav>
 <header>
   <h1>Levels <span>NQ · ES · GC vs prior day, week, month</span></h1>
   <div id="status">Loading…</div>
 </header>
 <main>
+  <a class="today-call" id="todayCall" href="/calendar.html"></a>
   <div class="matrix-wrap"><table class="matrix" id="matrix"></table></div>
   <div class="cards" id="cards"></div>
 </main>
@@ -233,6 +248,24 @@ async function load() {
 }
 load();
 setInterval(load, 60000);
+</script>
+<script src="/bias.js"></script>
+<script>
+async function loadCall() {
+  try {
+    const demo = new URLSearchParams(location.search).has("demo");
+    const r = await fetch(demo ? "demo-calendar.json" : "/api/calendar", { cache: "no-store" });
+    if (!r.ok) return;
+    const c = (await r.json()).calls.day;
+    const el = document.getElementById("todayCall");
+    el.className = "today-call " + c.verdict;
+    const top = c.reasons.slice().sort((a, b) => Math.abs(b.effect) - Math.abs(a.effect))[0];
+    el.innerHTML = `${biasArrow(c.verdict)}<div><div class="k">Today's NQ bias</div><div class="w">${BIAS_WORD[c.verdict]}</div>
+      <div class="s">${top ? top.text.replace(/[<>&]/g, "") : "Waiting for data"}${c.pending ? ` · ${c.pending} pending` : ""}</div></div>
+      <div class="go">Calendar &amp; details →</div>`;
+  } catch (e) {}
+}
+loadCall(); setInterval(loadCall, 60000);
 </script>
 </body>
 </html>

@@ -10,4 +10,6 @@ of the previous day, week and month.
 
 Deploy: import this repo in Vercel (no build settings needed).
 
+`calendar.html` + `api/calendar.js` — this week's US releases and the NQ bias. Actual results need a free FRED API key set as `FRED_API_KEY` in Vercel (Settings → Environment Variables).
+
 Data is Yahoo Finance continuous front-month futures; it may be delayed and is not for order entry.

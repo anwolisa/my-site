@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Calendar & NQ bias</title>
+<style>
+  :root {
+    --bg: #0b0e13; --panel: #131820; --line: #232b36; --text: #e6e9ee; --muted: #8a94a3;
+    --up: #2fbf71; --up-soft: rgba(47,191,113,.14); --down: #e5534b; --down-soft: rgba(229,83,75,.14);
+    --flat: #8a94a3; --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+  nav { display: flex; gap: 18px; padding: 16px 0 4px; font-size: 14px; }
+  nav a { color: var(--muted); text-decoration: none; } nav a.on { color: var(--text); font-weight: 600; }
+  header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; padding: 8px 0 16px; }
+  h1 { font-size: 20px; margin: 0; } h1 span { color: var(--muted); font-weight: 400; }
+  #status { color: var(--muted); font: 13px var(--mono); }
+  h2 { font-size: 15px; margin: 28px 0 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+
+  .calls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .call { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; gap: 16px; align-items: flex-start; }
+  .call.bullish { border-color: rgba(47,191,113,.5); } .call.bearish { border-color: rgba(229,83,75,.5); }
+  .arrow { width: 120px; height: 120px; flex: none; }
+  .call .period { color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: .06em; }
+  .call .word { font-size: 26px; font-weight: 800; margin: 2px 0 4px; }
+  .bullish .word { color: var(--up); } .bearish .word { color: var(--down); } .neutral .word { color: var(--flat); }
+  .call .score { font: 12px var(--mono); color: var(--muted); }
+  .why { margin: 10px 0 0; padding: 0; list-style: none; font-size: 12.5px; color: var(--muted); }
+  .why li { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; }
+  .why b { font-family: var(--mono); font-weight: 600; }
+  .pos { color: var(--up); } .neg { color: var(--down); }
+  .note { color: #d9b44a; font-size: 13px; margin-top: 12px; }
+
+  .tbl-wrap { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; min-width: 640px; }
+  th, td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+  td.n { font-family: var(--mono); text-align: right; } th.n { text-align: right; }
+  tr.day td { background: #0f141b; color: var(--muted); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+  tr.today.day td { color: var(--text); }
+  tr.dim td { color: #5d6774; }
+  .imp { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 8px; }
+  .imp.High { background: var(--down); } .imp.Medium { background: #d9b44a; } .imp.Low, .imp.Extra { background: #3a4554; }
+  .eff { display: inline-block; min-width: 54px; text-align: center; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .eff.pos { background: var(--up-soft); } .eff.neg { background: var(--down-soft); } .eff.flat { color: var(--muted); }
+  .rules { color: var(--muted); font-size: 13px; line-height: 1.6; }
+  .rules b { color: var(--text); font-weight: 600; }
+  footer { color: var(--muted); font-size: 12px; padding: 24px 0 36px; }
+  @media (max-width: 760px) {
+    .calls { grid-template-columns: 1fr; }
+    .wrap { padding: 0 12px; }
+    .arrow { width: 76px; height: 76px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav><a href="/">Levels</a><a class="on" href="/calendar.html">Calendar &amp; bias</a></nav>
+  <header>
+    <h1>NQ bias <span>from price levels and this week's US data</span></h1>
+    <div id="status">Loading…</div>
+  </header>
+
+  <div class="calls" id="calls"></div>
+  <div class="note" id="notes"></div>
+
+  <h2>This week's US releases</h2>
+  <div class="tbl-wrap"><table id="tbl"></table></div>
+
+  <h2>How the call is made</h2>
+  <div class="rules">
+    <p><b>Price position.</b> NQ above the prior period's high scores +2, above its midpoint +1, below its midpoint −1, below its low −2.
+      The day call uses the prior day, the week call the prior week, the month call the prior month.</p>
+    <p><b>Data surprises.</b> Each release that beats or misses its forecast adds points to the day and week calls. While the Fed is fighting inflation,
+      strong numbers point to higher rates, which hurt tech. So hotter inflation, stronger growth, spending and housing count as <span class="neg">bearish</span>,
+      and higher jobless claims count as <span class="pos">bullish</span>. Weights: core PCE MoM 3, headline PCE MoM 2, core PCE YoY 2, spending 1, GDP 1,
+      GDP price index 1, everything else 0.25–0.5. Releases matching their forecast score 0.</p>
+    <p><b>The call.</b> A total of +1 or more is bullish, −1 or less is bearish, anything in between is neutral (no clear edge).</p>
+  </div>
+
+  <footer>
+    This is a rules-based bias for information only, not trading or investment advice.
+    Forecasts: Forex Factory. Actuals: FRED (St. Louis Fed), usually within minutes of release. NQ price: Yahoo Finance, may be delayed.
+    Refreshes every 60 seconds.
+  </footer>
+</div>
+
+<script src="/bias.js"></script>
+<script>
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const etDay = (d) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(d));
+const dayLabel = (d) => new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "long", month: "short", day: "numeric" }).format(new Date(d));
+const timeLabel = (d) => new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hour: "numeric", minute: "2-digit" }).format(new Date(d));
+const signedPts = (n) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n)}`;
+
+function callCard(c) {
+  const why = c.reasons.map((r) => `<li><span>${esc(r.text)}</span><b class="${r.effect > 0 ? "pos" : "neg"}">${signedPts(r.effect)}</b></li>`).join("");
+  return `<div class="call ${c.verdict}">
+    ${biasArrow(c.verdict)}
+    <div style="min-width:0;flex:1">
+      <div class="period">${esc(c.label)}</div>
+      <div class="word">${BIAS_WORD[c.verdict]}</div>
+      <div class="score">Score ${signedPts(c.score)}${c.pending ? ` · ${c.pending} release${c.pending > 1 ? "s" : ""} pending` : ""}</div>
+      <ul class="why">${why}</ul>
+    </div></div>`;
+}
+
+function render(d) {
+  document.getElementById("calls").innerHTML = ["day", "week", "month"].map((k) => callCard(d.calls[k])).join("");
+  document.getElementById("notes").textContent = (d.notes || []).join(" ");
+  const today = etDay(Date.now());
+  let lastDay = "", html = `<tr><th>Time (ET)</th><th>Release</th><th class="n">Forecast</th><th class="n">Previous</th><th class="n">Actual</th><th>NQ effect</th></tr>`;
+  for (const e of d.events) {
+    const day = etDay(e.date);
+    if (day !== lastDay) { html += `<tr class="day ${day === today ? "today" : ""}"><td colspan="6">${dayLabel(e.date)}${day === today ? " · today" : ""}</td></tr>`; lastDay = day; }
+    let eff = `<span class="eff flat">—</span>`;
+    if (e.actual && e.surprise === "inline") eff = `<span class="eff flat">In line</span>`;
+    else if (e.effect > 0) eff = `<span class="eff pos">▲ ${signedPts(e.effect)}</span>`;
+    else if (e.effect < 0) eff = `<span class="eff neg">▼ ${signedPts(e.effect)}</span>`;
+    const dim = !e.scored && !e.forecast ? "dim" : "";
+    html += `<tr class="${dim}"><td>${e.impact === "Extra" ? "" : timeLabel(e.date)}</td>
+      <td><span class="imp ${e.impact}"></span>${esc(e.title)}</td>
+      <td class="n">${esc(e.forecast) || "—"}</td><td class="n">${esc(e.previous) || "—"}</td>
+      <td class="n"><b>${esc(e.actual) || "—"}</b></td><td>${eff}</td></tr>`;
+  }
+  document.getElementById("tbl").innerHTML = html;
+  document.getElementById("status").textContent = `Updated ${new Date(d.generatedAt).toLocaleTimeString()}`;
+}
+
+async function load() {
+  try {
+    const demo = new URLSearchParams(location.search).has("demo");
+    const r = await fetch(demo ? "demo-calendar.json" : "/api/calendar", { cache: "no-store" });
+    if (!r.ok) throw new Error(r.status);
+    render(await r.json());
+  } catch (e) {
+    document.getElementById("status").textContent = "Couldn't refresh — retrying in 60s";
+  }
+}
+load(); setInterval(load, 60000);
+</script>
+</body>
+</html>
