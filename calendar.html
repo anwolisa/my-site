@@ -68,7 +68,7 @@
   <div class="calls" id="calls"></div>
   <div class="note" id="notes"></div>
 
-  <h2>This week's high- and medium-impact US releases</h2>
+  <h2>High- and medium-impact US releases: today and next</h2>
   <div class="tbl-wrap"><table id="tbl"></table></div>
 
   <h2>How the call is made</h2>
@@ -113,10 +113,13 @@ function render(d) {
   document.getElementById("calls").innerHTML = ["day", "week", "month"].map((k) => callCard(d.calls[k])).join("");
   document.getElementById("notes").textContent = (d.notes || []).join(" ");
   const today = etDay(Date.now());
+  // Show only today and the next day that has releases (skips holidays and weekends).
+  const nextDay = d.events.map((e) => etDay(e.date)).filter((x) => x > today).sort()[0];
+  const shown = d.events.filter((e) => { const x = etDay(e.date); return x === today || x === nextDay; });
   let lastDay = "", html = `<tr><th>Time (ET)</th><th>Release</th><th>Description</th><th class="n">Forecast</th><th class="n">Previous</th><th class="n">Actual</th><th>NQ effect</th></tr>`;
-  for (const e of d.events) {
+  for (const e of shown) {
     const day = etDay(e.date);
-    if (day !== lastDay) { html += `<tr class="day ${day === today ? "today" : ""}"><td colspan="7">${dayLabel(e.date)}${day === today ? " · today" : ""}</td></tr>`; lastDay = day; }
+    if (day !== lastDay) { html += `<tr class="day ${day === today ? "today" : ""}"><td colspan="7">${dayLabel(e.date)}${day === today ? " · today" : " · next"}</td></tr>`; lastDay = day; }
     let eff = `<span class="eff flat">—</span>`;
     if (e.actual && e.surprise === "inline") eff = `<span class="eff flat">In line</span>`;
     else if (e.effect > 0) eff = `<span class="eff pos">▲ ${signedPts(e.effect)}</span>`;
@@ -128,6 +131,8 @@ function render(d) {
       <td class="n">${esc(e.forecast) || "—"}</td><td class="n">${esc(e.previous) || "—"}</td>
       <td class="n"><b>${esc(e.actual) || "—"}</b></td><td>${eff}</td></tr>`;
   }
+  if (!shown.some((e) => etDay(e.date) === today)) html += `<tr class="day today"><td colspan="7">Today · no high- or medium-impact US releases</td></tr>`;
+  if (!nextDay) html += `<tr class="dim"><td colspan="7">The next trading day's releases appear once next week's schedule is published (Sunday evening).</td></tr>`;
   document.getElementById("tbl").innerHTML = html;
   document.getElementById("status").textContent = `Updated ${new Date(d.generatedAt).toLocaleTimeString()}`;
 }
