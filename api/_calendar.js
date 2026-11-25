@@ -28,7 +28,6 @@ const SPECS = [
   { key: "capex", match: /^(non.?defen[cs]e|core) capital goods/i, label: "Non-Defense Capital Goods ex Aircraft (MoM)", series: "NEWORDER", calc: "pct_mom", dir: -1, weight: 0.5, group: "Growth", extraOf: "durables" },
   { key: "claims", match: /^unemployment claims/i, label: "Initial Jobless Claims", series: "ICSA", calc: "level", scale: 1 / 1000, suffix: "K", dir: +1, weight: 0.5, group: "Jobs" },
   { key: "new_home", match: /^new home sales/i, label: "New Home Sales", series: "HSN1F", calc: "level", scale: 1, suffix: "K", dir: -1, weight: 0.5, group: "Housing" },
-  { key: "crude", match: /^crude oil inventories/i, label: "Crude Oil Inventories", series: "WCESTUS1", calc: "diff", scale: 1 / 1000, suffix: "M", dir: 0, weight: 0, group: "Energy" },
 ];
 
 // Parse "0.3%", "201K", "-19B", "2.0M" → number in the string's own unit, plus formatting hints.
