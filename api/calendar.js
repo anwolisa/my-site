@@ -19,9 +19,23 @@ async function fredSeries(id, key, fetchImpl) {
   return { lastUpdated: C.parseFredTime(info.seriess?.[0]?.last_updated), obs: obs.observations || [] };
 }
 
-async function build({ fetchImpl = fetch, fredKey = process.env.FRED_API_KEY, now = Date.now() } = {}) {
+// Last good copy of the weekly feed, kept while this server instance stays warm.
+let ffMemo = null;
+
+async function getFF(ffUrl, fetchImpl) {
+  try {
+    const data = await getJson(ffUrl, fetchImpl);
+    if (Array.isArray(data)) ffMemo = data;
+    return data;
+  } catch (e) {
+    if (ffMemo) return ffMemo;
+    throw e;
+  }
+}
+
+async function build({ fetchImpl = fetch, fredKey = process.env.FRED_API_KEY, now = Date.now(), ffUrl = C.FF_URL } = {}) {
   const notes = [];
-  const ff = await getJson(C.FF_URL, fetchImpl);
+  const ff = await getFF(ffUrl, fetchImpl);
   const rows = C.buildRows(ff);
 
   // Actuals from FRED (only for series this week's releases need).
@@ -53,7 +67,10 @@ async function build({ fetchImpl = fetch, fredKey = process.env.FRED_API_KEY, no
 
 module.exports = async (req, res) => {
   try {
-    const data = await build();
+    // Read the feed through our own hour-cached /api/ff endpoint, not the source directly.
+    const host = req.headers["x-forwarded-host"] || req.headers.host;
+    const ffUrl = host ? `https://${host}/api/ff` : C.FF_URL;
+    const data = await build({ ffUrl });
     res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=120");
     res.status(200).json(data);
   } catch (e) {
